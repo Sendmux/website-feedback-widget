@@ -1,0 +1,65 @@
+{
+  "name": "@sendmux/feedback-widget",
+  "version": "0.1.0",
+  "description": "Open-source website feedback widget for webhook and email-to-agent workflows powered by Sendmux.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.22.0",
+  "homepage": "https://github.com/Sendmux/website-feedback-widget#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sendmux/website-feedback-widget.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sendmux/website-feedback-widget/issues"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "sideEffects": true,
+  "main": "./dist/sendmux-feedback.js",
+  "module": "./dist/sendmux-feedback.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/sendmux-feedback.js",
+      "default": "./dist/sendmux-feedback.js"
+    }
+  },
+  "unpkg": "./dist/sendmux-feedback.iife.js",
+  "jsdelivr": "./dist/sendmux-feedback.iife.js",
+  "scripts": {
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
+    "dev": "vite --host 127.0.0.1",
+    "build": "pnpm clean && vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "feedback",
+    "widget",
+    "website-feedback",
+    "in-app-feedback",
+    "customer-feedback",
+    "web-component",
+    "custom-element",
+    "webhook",
+    "email-workflow",
+    "ai-agent",
+    "sendmux"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.1",
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
+  }
+}

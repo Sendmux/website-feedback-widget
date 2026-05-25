@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Sendmux Feedback Widget Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family:
+          "Lato",
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: #f8fafc;
+        color: #101828;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        background: #f8fafc;
+      }
+
+      main {
+        width: min(54rem, calc(100vw - 2rem));
+        border: 1px solid #e4e7ec;
+        border-radius: 1rem;
+        padding: 2rem;
+        background: #ffffff;
+        box-shadow: 0 24px 80px rgb(16 24 40 / 12%);
+      }
+
+      .eyebrow {
+        margin: 0 0 0.75rem;
+        color: #4f46e5;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 42rem;
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 4rem);
+        line-height: 1;
+        letter-spacing: -0.04em;
+      }
+
+      p {
+        max-width: 38rem;
+        color: #475467;
+        line-height: 1.6;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+
+      button {
+        min-height: 2.5rem;
+        border: 1px solid currentColor;
+        border-color: color-mix(in oklab, CanvasText 20%, transparent);
+        border-radius: 0.5rem;
+        padding: 0 1rem;
+        background: Canvas;
+        color: CanvasText;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .primary-trigger {
+        border-color: #4f46e5;
+        background: #4f46e5;
+        color: #ffffff;
+      }
+
+      .signal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 2rem;
+      }
+
+      .signal {
+        border: 1px solid #e4e7ec;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        background: #f9fafb;
+      }
+
+      .signal strong {
+        display: block;
+        margin-bottom: 0.35rem;
+      }
+
+      .signal span {
+        color: #667085;
+        font-size: 0.875rem;
+        line-height: 1.45;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          background: #111827;
+          color: #f8fafc;
+        }
+
+        body {
+          background: #111827;
+        }
+
+        main {
+          border-color: #30384c;
+          background: #151927;
+          box-shadow: 0 24px 80px rgb(0 0 0 / 36%);
+        }
+
+        .eyebrow {
+          color: #a5b4fc;
+        }
+
+        p {
+          color: #b8c0cc;
+        }
+
+        .signal {
+          border-color: #30384c;
+          background: #202638;
+        }
+
+        .signal span {
+          color: #b8c0cc;
+        }
+      }
+
+      @media (max-width: 720px) {
+        main {
+          padding: 1.25rem;
+        }
+
+        .signal-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main data-capture-frame>
+      <p class="eyebrow">Sendmux Feedback Widget</p>
+      <h1>Capture feedback where product work happens.</h1>
+      <p>
+        Collect issues, ideas, and praise from logged-in users, then send them to a webhook,
+        any inbox, or a Sendmux mailbox for downstream agent triage.
+      </p>
+      <div class="toolbar">
+        <button class="primary-trigger" data-sendmux-feedback-button>Open feedback</button>
+        <button type="button">View workflow</button>
+      </div>
+      <div class="signal-grid" aria-label="Feedback workflow examples">
+        <div class="signal">
+          <strong>Collect</strong>
+          <span>Small, accessible widget for websites and apps.</span>
+        </div>
+        <div class="signal">
+          <strong>Route</strong>
+          <span>Send JSON to a webhook or email through your server relay.</span>
+        </div>
+        <div class="signal">
+          <strong>Triage</strong>
+          <span>Let your downstream process classify and prioritise.</span>
+        </div>
+      </div>
+    </main>
+
+    <sendmux-feedback
+      endpoint="/demo-feedback"
+      position="middle-right"
+      brand-colour="#4f46e5"
+      font-family="'Lato', system-ui, sans-serif"
+    ></sendmux-feedback>
+
+    <script type="module" src="/src/index.ts"></script>
+    <script type="module">
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("capture") === "open") {
+        await customElements.whenDefined("sendmux-feedback");
+        window.sendmuxFeedback?.open();
+      }
+    </script>
+  </body>
+</html>
