@@ -8,7 +8,7 @@
   "homepage": "https://github.com/Sendmux/website-feedback-widget#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Sendmux/website-feedback-widget"
+    "url": "git+https://github.com/Sendmux/website-feedback-widget.git"
   },
   "bugs": {
     "url": "https://github.com/Sendmux/website-feedback-widget/issues"
