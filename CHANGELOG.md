@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented here.
 
-## 0.1.0 - Unreleased
+## 0.1.1 - 2026-05-26
+
+- Fixed hidden status messages so success and error rows do not appear before submission.
+- Refreshed README previews with widget-only category and message-step screenshots.
+
+## 0.1.0 - 2026-05-25
 
 - Initial Sendmux Feedback Widget package.
 - Added custom element embed, global helper API, webhook delivery, and secure relay documentation.

@@ -196,9 +196,19 @@
     <script type="module" src="/src/index.ts"></script>
     <script type="module">
       const params = new URLSearchParams(window.location.search);
-      if (params.get("capture") === "open") {
+      const captureMode = params.get("capture");
+      if (captureMode === "open" || captureMode === "message") {
         await customElements.whenDefined("sendmux-feedback");
         window.sendmuxFeedback?.open();
+
+        if (captureMode === "message") {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          const type = params.get("type") || "idea";
+          document
+            .querySelector("sendmux-feedback")
+            ?.shadowRoot?.querySelector(`[data-feedback-type="${type}"]`)
+            ?.click();
+        }
       }
     </script>
   </body>

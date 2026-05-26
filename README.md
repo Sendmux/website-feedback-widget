@@ -1,19 +1,6 @@
 <p align="center">
-  <picture>
-    <source
-      media="(prefers-color-scheme: dark)"
-      srcset="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/logo-dark.svg"
-    />
-    <source
-      media="(prefers-color-scheme: light)"
-      srcset="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/logo-light.svg"
-    />
-    <img
-      width="400"
-      alt="Sendmux"
-      src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/logo-light.svg"
-    />
-  </picture>
+  <img src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/widget-category-2x.png" alt="Sendmux Feedback Widget category selection" width="360">
+  <img src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/widget-message-2x.png" alt="Sendmux Feedback Widget message step" width="360">
 </p>
 
 # Sendmux Feedback Widget
@@ -28,19 +15,13 @@ Feedback is most useful when it enters a workflow, not a spreadsheet. Send each 
 
 Once feedback arrives as email, your agent workflow can:
 
-- classify issues, ideas, praise, and account-specific requests;
-- group duplicates by URL, user, workspace, plan, or message content;
-- summarise threads and route them to support, product, or engineering;
-- create or update GitHub issues when the feedback matches your product plan;
-- keep a readable audit trail in an inbox your team can inspect.
+- **Classify** issues, ideas, praise, and account-specific requests;
+- **Group duplicates** by URL, user, workspace, plan, or message content;
+- **Summarise threads** and route them to support, product, or engineering;
+- **Create or update GitHub issues** when the feedback matches your product plan;
+- **Keep a readable audit trail** in an inbox your team can inspect.
 
 This repository does not ship the agent that reads email or creates GitHub issues. It ships the widget, payload contract, secure relay pattern, and playbook for building that workflow.
-
-## 🌗 Preview
-
-| Light mode | Dark mode |
-| --- | --- |
-| <img src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/widget-light-2x.png" alt="Sendmux Feedback Widget light mode preview" width="520"> | <img src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/widget-dark-2x.png" alt="Sendmux Feedback Widget dark mode preview" width="520"> |
 
 ## ⚡ Features
 
@@ -314,3 +295,21 @@ Releases are tag-driven through GitHub Actions.
 For the first npm publish, add a temporary GitHub Actions secret named `NPM_TOKEN`. After `@sendmux/feedback-widget` exists on npm, configure npm Trusted Publishing with workflow filename `publish.yml` and remove the token.
 
 If this saves you time, star the repo and share how you are routing feedback into your own agent workflows.
+
+<p align="center">
+  <picture>
+    <source
+      media="(prefers-color-scheme: dark)"
+      srcset="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/logo-dark.svg"
+    />
+    <source
+      media="(prefers-color-scheme: light)"
+      srcset="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/logo-light.svg"
+    />
+    <img
+      width="320"
+      alt="Sendmux"
+      src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/logo-light.svg"
+    />
+  </picture>
+</p>

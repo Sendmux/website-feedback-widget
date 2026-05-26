@@ -24,6 +24,7 @@ test("updates message copy and supports going back to choose a category", async 
   await page.getByRole("button", { name: /feature, workflow/ }).click();
   await expect(page.getByLabel("Message")).toHaveAttribute("placeholder", /feature you would like to see/);
   await expect(page.getByRole("button", { name: "Send Idea" })).toBeVisible();
+  await expect(page.getByText("Thanks. Your idea was sent.")).toBeHidden();
 
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await page.getByRole("button", { name: /general note/ }).click();

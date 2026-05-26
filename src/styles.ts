@@ -86,6 +86,10 @@ export const styles = `
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 svg {
   width: 1.125em;
   height: 1.125em;
