@@ -8,3 +8,4 @@ test-results/
 .env.*
 !.env.example
 AGENT.md
+AGENTS.md
