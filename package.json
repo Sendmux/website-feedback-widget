@@ -1,6 +1,6 @@
 {
   "name": "@sendmux/feedback-widget",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Open-source website feedback widget for webhook and email-to-agent workflows powered by Sendmux.",
   "license": "MIT",
   "type": "module",

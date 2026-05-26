@@ -247,19 +247,26 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
   }
 
   private readAttributeConfig(): AttributeConfig {
+    const config: AttributeConfig = {};
     const poweredBy = this.getAttribute("powered-by");
     const minMessageLength = this.getAttribute("min-message-length");
+    const endpoint = this.getAttribute("endpoint");
+    const position = this.getAttribute("position");
+    const brandColor = this.getAttribute("brand-color") ?? this.getAttribute("brand-colour");
+    const fontFamily = this.getAttribute("font-family");
+    const buttonLabel = this.getAttribute("button-label");
+    const title = this.getAttribute("heading");
 
-    return {
-      endpoint: this.getAttribute("endpoint") ?? undefined,
-      position: this.getAttribute("position") ?? undefined,
-      brandColor: this.getAttribute("brand-color") ?? this.getAttribute("brand-colour") ?? undefined,
-      fontFamily: this.getAttribute("font-family") ?? undefined,
-      poweredBy: poweredBy === null ? undefined : !boolFalseValues.has(poweredBy.trim().toLowerCase()),
-      buttonLabel: this.getAttribute("button-label") ?? undefined,
-      title: this.getAttribute("heading") ?? undefined,
-      minMessageLength: minMessageLength === null ? undefined : Number(minMessageLength)
-    };
+    if (endpoint !== null) config.endpoint = endpoint;
+    if (position !== null) config.position = position;
+    if (brandColor !== null) config.brandColor = brandColor;
+    if (fontFamily !== null) config.fontFamily = fontFamily;
+    if (poweredBy !== null) config.poweredBy = !boolFalseValues.has(poweredBy.trim().toLowerCase());
+    if (buttonLabel !== null) config.buttonLabel = buttonLabel;
+    if (title !== null) config.title = title;
+    if (minMessageLength !== null) config.minMessageLength = Number(minMessageLength);
+
+    return config;
   }
 
   private render() {

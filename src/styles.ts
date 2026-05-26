@@ -34,6 +34,7 @@ export const styles = `
   --smx-feedback-offset-bottom: calc(var(--smx-feedback-offset) + env(safe-area-inset-bottom, 0px));
   --smx-feedback-offset-left: calc(var(--smx-feedback-offset) + env(safe-area-inset-left, 0px));
   --smx-feedback-z-index: 2147483000;
+  --smx-feedback-panel-width: 560px;
 
   position: fixed;
   z-index: var(--smx-feedback-z-index);
@@ -148,7 +149,7 @@ a:focus-visible {
 }
 
 .panel {
-  width: min(432px, calc(100vw - 2rem));
+  width: min(var(--smx-feedback-panel-width), calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);
   max-height: calc(100dvh - 2rem);
   overflow: auto;
@@ -373,13 +374,12 @@ p {
 }
 
 .option__desc {
-  overflow: hidden;
+  overflow: visible;
   color: var(--smx-feedback-muted);
   font-size: 0.97475rem;
   font-weight: 400;
   line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .pill {

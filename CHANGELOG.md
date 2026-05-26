@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented here.
 
+## 0.1.3 - 2026-05-26
+
+- Widened the feedback panel so category descriptions have room to read clearly.
+- Removed desktop truncation from category helper text.
+- Fixed absent HTML attributes overwriting JavaScript config values such as `endpoint` and `fontFamily`.
+- Covered JavaScript-opened endpoint configuration and host font-family application in tests.
+
 ## 0.1.2 - 2026-05-26
 
 - Added a centred modal position for in-app feedback flows.
