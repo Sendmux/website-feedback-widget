@@ -3,6 +3,10 @@ import type { SendmuxFeedbackPosition } from "./types";
 export const defaultPosition: SendmuxFeedbackPosition = "bottom-right";
 
 const aliases: Record<string, SendmuxFeedbackPosition> = {
+  centre: "center",
+  middle: "center",
+  "middle-center": "center",
+  "middle-centre": "center",
   "top-centre": "top-center",
   "top-middle": "top-center",
   "bottom-centre": "bottom-center",
@@ -12,6 +16,7 @@ const aliases: Record<string, SendmuxFeedbackPosition> = {
 };
 
 const positions = new Set<SendmuxFeedbackPosition>([
+  "center",
   "top-left",
   "top-center",
   "top-right",

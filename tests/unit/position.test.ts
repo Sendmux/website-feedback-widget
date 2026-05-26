@@ -1,6 +1,9 @@
 import { normalisePosition } from "../../src/position";
 
 test("normalises position aliases", () => {
+  expect(normalisePosition("centre")).toBe("center");
+  expect(normalisePosition("middle")).toBe("center");
+  expect(normalisePosition("middle-centre")).toBe("center");
   expect(normalisePosition("top-centre")).toBe("top-center");
   expect(normalisePosition("top-middle")).toBe("top-center");
   expect(normalisePosition("right-middle")).toBe("middle-right");

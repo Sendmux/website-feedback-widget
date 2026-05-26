@@ -1,7 +1,7 @@
 import { buildFeedbackPayload } from "./payload";
 import { normalisePosition } from "./position";
 import { styles } from "./styles";
-import type { FeedbackType, JsonObject, SendmuxFeedbackConfig, SendmuxFeedbackPayload } from "./types";
+import type { FeedbackType, SendmuxFeedbackConfig } from "./types";
 
 export const tagName = "sendmux-feedback";
 
@@ -10,68 +10,83 @@ const defaultConfig: Required<
 > = {
   buttonLabel: "Feedback",
   title: "Send feedback",
-  brandColor: "#4f46e5",
+  brandColor: "oklch(0.556 0.19 264)",
   position: "bottom-right",
   poweredBy: true
 };
 
+const maxMessageLength = 2000;
 const boolFalseValues = new Set(["false", "0", "off", "no"]);
 let instanceCount = 0;
 const BaseHTMLElement: typeof HTMLElement =
   typeof HTMLElement === "undefined" ? (class {} as unknown as typeof HTMLElement) : HTMLElement;
 
-type FormStep = "category" | "message";
+type FormStep = "category" | "message" | "success" | "error";
 
 type AttributeConfig = Omit<SendmuxFeedbackConfig, "position"> & {
   position?: string;
 };
 
+interface RenderTemplateParams {
+  config: SendmuxFeedbackConfig;
+  position: string;
+  errorId: string;
+  characterCountId: string;
+  selectedContent: FeedbackTypeContent;
+  dialogLabel: string;
+}
+
 interface FeedbackTypeContent {
   label: string;
-  emoji: string;
   helper: string;
   placeholder: string;
   submitLabel: string;
   busyLabel: string;
-  successMessage: string;
+  successBody: string;
+  ariaLabel: string;
+  icon: string;
 }
 
 const feedbackTypeContent: Record<FeedbackType, FeedbackTypeContent> = {
   issue: {
     label: "Issue",
-    emoji: "⚠️",
     helper: "Something broke or behaved unexpectedly.",
     placeholder: "Tell us what broke, what you expected, and where it happened.",
-    submitLabel: "Send Issue",
+    submitLabel: "Send issue",
     busyLabel: "Sending issue...",
-    successMessage: "Thanks. Your issue was sent."
+    successBody: "Your issue is on its way to the team. We'll reach out if we need more detail.",
+    ariaLabel: "Your issue",
+    icon: iconIssue()
   },
   idea: {
     label: "Idea",
-    emoji: "💡",
-    helper: "A feature, workflow, or improvement request.",
+    helper: "A feature request or improvement.",
     placeholder: "Share the improvement, workflow, or feature you would like to see.",
-    submitLabel: "Send Idea",
+    submitLabel: "Send idea",
     busyLabel: "Sending idea...",
-    successMessage: "Thanks. Your idea was sent."
+    successBody: "Your idea is on its way to the team. We'll reach out if we need more detail.",
+    ariaLabel: "Your idea",
+    icon: iconIdea()
   },
   praise: {
     label: "Praise",
-    emoji: "✨",
     helper: "Something that worked well or felt valuable.",
     placeholder: "Tell us what worked well or what made the experience better.",
-    submitLabel: "Send Praise",
+    submitLabel: "Send praise",
     busyLabel: "Sending praise...",
-    successMessage: "Thanks. Your praise was sent."
+    successBody: "Your praise is on its way to the team. We'll reach out if we need more detail.",
+    ariaLabel: "Your praise",
+    icon: iconPraise()
   },
   feedback: {
     label: "Feedback",
-    emoji: "💬",
     helper: "A general note, question, or product signal.",
     placeholder: "Send a note, question, or any context that helps the team understand your feedback.",
-    submitLabel: "Send Feedback",
+    submitLabel: "Send feedback",
     busyLabel: "Sending feedback...",
-    successMessage: "Thanks. Your feedback was sent."
+    successBody: "Your feedback is on its way to the team. We'll reach out if we need more detail.",
+    ariaLabel: "Your feedback",
+    icon: iconFeedback()
   }
 };
 
@@ -84,7 +99,8 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
     "font-family",
     "powered-by",
     "button-label",
-    "heading"
+    "heading",
+    "min-message-length"
   ];
 
   private readonly root: ShadowRoot;
@@ -92,14 +108,14 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
   private config: SendmuxFeedbackConfig = {};
   private dialog?: HTMLDialogElement;
   private form?: HTMLFormElement;
-  private closeButton?: HTMLButtonElement;
   private launcher?: HTMLButtonElement;
   private messageInput?: HTMLTextAreaElement;
   private errorElement?: HTMLElement;
-  private successElement?: HTMLElement;
   private submitButton?: HTMLButtonElement;
+  private characterCounter?: HTMLElement;
   private selectedFeedbackType: FeedbackType = "issue";
   private currentStep: FormStep = "category";
+  private minMessageLength = 1;
 
   constructor() {
     super();
@@ -156,16 +172,18 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
     const formData = new FormData(this.form);
     const feedbackType = this.getCurrentFeedbackType(formData);
     const message = String(formData.get("message") ?? "");
+    const validationError = this.getMessageValidationError(message);
 
-    if (!message.trim()) {
-      this.setError("Please enter your feedback before sending.");
+    if (validationError) {
+      this.setInlineError(validationError);
       this.setStep("message", { focus: true });
       return;
     }
 
     const endpoint = this.resolveEndpoint(config.endpoint);
     if (!endpoint) {
-      this.setError("Feedback endpoint is not configured.");
+      this.setInlineError("Feedback endpoint is not configured.");
+      this.setStep("message", { focus: true });
       return;
     }
 
@@ -194,10 +212,12 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
         throw new Error(`Feedback endpoint returned ${response.status}`);
       }
 
-      this.setSuccess();
+      this.resetStatus();
+      this.setStep("success", { focus: true });
       this.dispatchWidgetEvent("success", payload);
     } catch (error) {
-      this.setError("Something went wrong. Please try again.");
+      this.resetStatus();
+      this.setStep("error", { focus: true });
       this.dispatchWidgetEvent("error", { error, payload });
     } finally {
       this.setBusy(false);
@@ -219,13 +239,16 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
       ...attrConfig,
       position: normalisePosition(attrPosition ?? this.config.position ?? windowConfig.position ?? defaultConfig.position),
       brandColor: attrConfig.brandColor ?? getBrandColor(this.config) ?? getBrandColor(windowConfig) ?? defaultConfig.brandColor,
-      poweredBy:
-        attrConfig.poweredBy ?? this.config.poweredBy ?? windowConfig.poweredBy ?? defaultConfig.poweredBy
+      poweredBy: attrConfig.poweredBy ?? this.config.poweredBy ?? windowConfig.poweredBy ?? defaultConfig.poweredBy,
+      minMessageLength: normaliseMinMessageLength(
+        attrConfig.minMessageLength ?? this.config.minMessageLength ?? windowConfig.minMessageLength
+      )
     };
   }
 
   private readAttributeConfig(): AttributeConfig {
     const poweredBy = this.getAttribute("powered-by");
+    const minMessageLength = this.getAttribute("min-message-length");
 
     return {
       endpoint: this.getAttribute("endpoint") ?? undefined,
@@ -234,7 +257,8 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
       fontFamily: this.getAttribute("font-family") ?? undefined,
       poweredBy: poweredBy === null ? undefined : !boolFalseValues.has(poweredBy.trim().toLowerCase()),
       buttonLabel: this.getAttribute("button-label") ?? undefined,
-      title: this.getAttribute("heading") ?? undefined
+      title: this.getAttribute("heading") ?? undefined,
+      minMessageLength: minMessageLength === null ? undefined : Number(minMessageLength)
     };
   }
 
@@ -242,22 +266,40 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
     const config = this.readConfig();
     const position = normalisePosition(config.position);
     const errorId = `${this.instanceId}-error`;
-    const successId = `${this.instanceId}-success`;
+    const characterCountId = `${this.instanceId}-character-count`;
     const selectedContent = feedbackTypeContent[this.selectedFeedbackType];
     const dialogLabel = escapeHtml(config.title ?? defaultConfig.title);
+    this.minMessageLength = normaliseMinMessageLength(config.minMessageLength);
 
+    this.applyConfigStyles(config);
+    this.root.innerHTML = this.renderTemplate({
+      config,
+      position,
+      errorId,
+      characterCountId,
+      selectedContent,
+      dialogLabel
+    });
+    this.cacheElements(errorId);
+
+    this.dataset.position = position;
+    this.applyStepState();
+    this.syncFeedbackTypeState();
+    this.updateCharacterCount();
+    this.bindEvents();
+  }
+
+  private applyConfigStyles(config: SendmuxFeedbackConfig) {
     this.style.setProperty("--smx-feedback-brand", config.brandColor ?? defaultConfig.brandColor);
     if (config.fontFamily) this.style.setProperty("--smx-feedback-font", config.fontFamily);
     else this.style.removeProperty("--smx-feedback-font");
+  }
 
-    this.root.innerHTML = `
+  private renderTemplate({ config, position, errorId, characterCountId, selectedContent, dialogLabel }: RenderTemplateParams) {
+    return `
       <style>${styles}</style>
       <button class="launcher" part="launcher" type="button" aria-haspopup="dialog">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4.75 5.75h14.5v9.5H8.5l-3.75 3.5v-13Z"></path>
-          <path d="M8.5 9.25h7"></path>
-          <path d="M8.5 12.25h4.5"></path>
-        </svg>
+        ${iconFeedback()}
         <span>${escapeHtml(config.buttonLabel ?? defaultConfig.buttonLabel)}</span>
       </button>
 
@@ -268,64 +310,109 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
         aria-label="${dialogLabel}"
       >
         <form class="form" method="dialog" novalidate data-step="${this.currentStep}">
-          <header class="header">
-            <button class="icon-button" type="button" aria-label="Close feedback form">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="m6.75 6.75 10.5 10.5"></path>
-                <path d="m17.25 6.75-10.5 10.5"></path>
-              </svg>
-            </button>
-          </header>
-
           <input type="hidden" name="feedback_type" value="${this.selectedFeedbackType}">
 
-          <div class="step-shell">
-            <section class="step step-category" aria-hidden="${this.currentStep !== "category"}">
-              <div class="category-options" role="group" aria-label="Feedback category">
-                ${categoryOption("issue", feedbackTypeContent.issue, this.selectedFeedbackType === "issue")}
-                ${categoryOption("idea", feedbackTypeContent.idea, this.selectedFeedbackType === "idea")}
-                ${categoryOption("praise", feedbackTypeContent.praise, this.selectedFeedbackType === "praise")}
-                ${categoryOption("feedback", feedbackTypeContent.feedback, this.selectedFeedbackType === "feedback")}
-              </div>
-            </section>
+          <section class="step step-category" aria-hidden="${this.currentStep !== "category"}">
+            <header class="widget__head">
+              <h2 class="widget__title">What's on your mind?</h2>
+              <button class="widget__close" type="button" aria-label="Close">
+                ${iconClose()}
+              </button>
+            </header>
 
-            <section class="step step-message" aria-hidden="${this.currentStep !== "message"}">
-              <div class="step-topline">
-                <button class="back-button" type="button" data-back>
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m15.25 6.75-5.5 5.25 5.5 5.25"></path>
-                  </svg>
-                  <span>Back</span>
-                </button>
-                <span class="selected-chip">
-                  <span aria-hidden="true">${selectedContent.emoji}</span>
-                  <span>${escapeHtml(selectedContent.label)}</span>
-                </span>
-              </div>
+            <div class="options" role="radiogroup" aria-label="Feedback category">
+              ${categoryOption("issue", feedbackTypeContent.issue, this.selectedFeedbackType === "issue")}
+              ${categoryOption("idea", feedbackTypeContent.idea, this.selectedFeedbackType === "idea")}
+              ${categoryOption("praise", feedbackTypeContent.praise, this.selectedFeedbackType === "praise")}
+              ${categoryOption("feedback", feedbackTypeContent.feedback, this.selectedFeedbackType === "feedback")}
+            </div>
+          </section>
 
-              <label class="field">
-                <span class="visually-hidden">Message</span>
+          <section class="step step-message" aria-hidden="${this.currentStep !== "message"}">
+            <header class="widget__head">
+              <button class="widget__back" type="button" aria-label="Back to categories" data-back>
+                ${iconBack()}
+                <span>Back</span>
+              </button>
+
+              <span class="pill pill--${this.selectedFeedbackType}" aria-label="Selected category: ${selectedContent.label}">
+                <span class="pill__glyph" aria-hidden="true">${selectedContent.icon}</span>
+                <span>${escapeHtml(selectedContent.label)}</span>
+              </span>
+            </header>
+
+            <div class="compose">
+              <div class="compose__field">
                 <textarea
+                  class="compose__textarea"
                   name="message"
-                  rows="5"
-                  maxlength="4000"
+                  minlength="${this.minMessageLength}"
+                  maxlength="${maxMessageLength}"
                   required
+                  aria-label="${escapeHtml(selectedContent.ariaLabel)}"
+                  aria-describedby="${errorId} ${characterCountId}"
+                  aria-invalid="false"
                   placeholder="${escapeHtml(selectedContent.placeholder)}"
                 ></textarea>
-              </label>
+              </div>
 
-              <p id="${errorId}" class="status error" role="alert" hidden></p>
-              <p id="${successId}" class="status success" role="status" hidden>
-                <span class="status-icon" aria-hidden="true">✓</span>
-                <span data-success-copy>${escapeHtml(selectedContent.successMessage)}</span>
-              </p>
+              <p id="${errorId}" class="inline-error" role="alert" hidden></p>
+
+              <div class="compose__meta">
+                <span>We'll reply at the email on file.</span>
+                <span id="${characterCountId}" data-character-count>0 / ${maxMessageLength}</span>
+              </div>
 
               <div class="actions">
-                <button class="secondary" type="button" data-close>Cancel</button>
-                <button class="primary" type="submit">${escapeHtml(selectedContent.submitLabel)}</button>
+                <button class="btn btn--ghost" type="button" data-close>Cancel</button>
+                <button class="btn btn--primary" type="submit">${escapeHtml(selectedContent.submitLabel)}</button>
               </div>
-            </section>
-          </div>
+            </div>
+          </section>
+
+          <section class="step step-success" aria-hidden="${this.currentStep !== "success"}">
+            <header class="widget__head">
+              <h2 class="widget__title" aria-hidden="true">&nbsp;</h2>
+              <button class="widget__close" type="button" aria-label="Close">
+                ${iconClose()}
+              </button>
+            </header>
+
+            <div class="status-screen status-screen--success" role="status" aria-live="polite">
+              <div class="status-screen__icon" aria-hidden="true">${iconCheck()}</div>
+              <h3 class="status-screen__title">Thanks — we got it</h3>
+              <p class="status-screen__body" data-success-copy>${escapeHtml(selectedContent.successBody)}</p>
+              <div class="status-screen__actions">
+                <button class="btn btn--ghost" type="button" data-send-another>Send another</button>
+                <button class="btn btn--primary" type="button" data-close>Done</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="step step-error" aria-hidden="${this.currentStep !== "error"}">
+            <header class="widget__head">
+              <button class="widget__back" type="button" aria-label="Back to compose" data-back-to-message>
+                ${iconBack()}
+                <span>Back</span>
+              </button>
+              <button class="widget__close" type="button" aria-label="Close">
+                ${iconClose()}
+              </button>
+            </header>
+
+            <div class="status-screen status-screen--error" role="alert">
+              <div class="status-screen__icon" aria-hidden="true">${iconError()}</div>
+              <h3 class="status-screen__title">Couldn't send your feedback</h3>
+              <p class="status-screen__body">Something went wrong on our end. Your draft is saved — try again in a moment.</p>
+              <div class="status-screen__actions">
+                <button class="btn btn--ghost" type="button" data-close>Cancel</button>
+                <button class="btn btn--primary" type="button" data-try-again>
+                  ${iconRetry()}
+                  <span>Try again</span>
+                </button>
+              </div>
+            </div>
+          </section>
 
           ${
             config.poweredBy
@@ -335,27 +422,33 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
         </form>
       </dialog>
     `;
+  }
 
+  private cacheElements(errorId: string) {
     this.dialog = this.root.querySelector(".panel") ?? undefined;
     this.form = this.root.querySelector(".form") ?? undefined;
     this.launcher = this.root.querySelector(".launcher") ?? undefined;
-    this.closeButton = this.root.querySelector(".icon-button") ?? undefined;
     this.messageInput = this.root.querySelector("textarea") ?? undefined;
     this.errorElement = this.root.getElementById(errorId) ?? undefined;
-    this.successElement = this.root.getElementById(successId) ?? undefined;
-    this.submitButton = this.root.querySelector(".primary") ?? undefined;
+    this.submitButton = this.root.querySelector(".btn--primary[type='submit']") ?? undefined;
+    this.characterCounter = this.root.querySelector("[data-character-count]") ?? undefined;
+  }
 
-    this.dataset.position = position;
-    this.applyStepState();
-    this.updateFeedbackTypeCopy();
-
+  private bindEvents() {
     this.launcher?.addEventListener("click", () => this.open());
-    this.closeButton?.addEventListener("click", () => this.close());
-    this.root.querySelector("[data-close]")?.addEventListener("click", () => this.close());
+    this.root.querySelectorAll<HTMLButtonElement>(".widget__close, [data-close]").forEach((button) => {
+      button.addEventListener("click", () => this.close());
+    });
     this.root.querySelector("[data-back]")?.addEventListener("click", () => this.setStep("category", { focus: true }));
+    this.root
+      .querySelector("[data-back-to-message]")
+      ?.addEventListener("click", () => this.setStep("message", { focus: true }));
+    this.root.querySelector("[data-send-another]")?.addEventListener("click", () => this.resetForm());
+    this.root.querySelector("[data-try-again]")?.addEventListener("click", () => void this.submit());
     this.root.querySelectorAll<HTMLButtonElement>("[data-feedback-type]").forEach((button) => {
       button.addEventListener("click", () => this.selectFeedbackType(button.dataset.feedbackType));
     });
+    this.messageInput?.addEventListener("input", () => this.handleMessageInput());
     this.form?.addEventListener("submit", (event) => {
       event.preventDefault();
       void this.submit();
@@ -383,10 +476,8 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
       this.errorElement.hidden = true;
       this.errorElement.textContent = "";
     }
-    if (this.successElement) {
-      this.successElement.hidden = true;
-    }
-    this.form?.removeAttribute("data-success");
+    this.messageInput?.setAttribute("aria-invalid", "false");
+    this.messageInput?.setCustomValidity("");
   }
 
   private resetForm() {
@@ -396,7 +487,8 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
     this.resetStatus();
     this.setBusy(false);
     this.applyStepState();
-    this.updateFeedbackTypeCopy();
+    this.syncFeedbackTypeState();
+    this.updateCharacterCount();
   }
 
   private setBusy(isBusy: boolean) {
@@ -407,25 +499,20 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
     this.submitButton.textContent = isBusy ? content.busyLabel : content.submitLabel;
   }
 
-  private setError(message: string) {
+  private setInlineError(message: string) {
     if (!this.errorElement) return;
 
     this.errorElement.hidden = false;
     this.errorElement.textContent = message;
-    this.successElement?.setAttribute("hidden", "");
-  }
-
-  private setSuccess() {
-    this.form?.setAttribute("data-success", "true");
-    if (this.successElement) this.successElement.hidden = false;
-    if (this.errorElement) this.errorElement.hidden = true;
+    this.messageInput?.setAttribute("aria-invalid", "true");
+    this.messageInput?.setCustomValidity(message);
   }
 
   private selectFeedbackType(value: string | undefined) {
     if (!value || !isFeedbackType(value)) return;
 
     this.selectedFeedbackType = value;
-    this.updateFeedbackTypeCopy();
+    this.syncFeedbackTypeState();
     this.applyCategoryState();
     this.setStep("message", { focus: true });
     this.dispatchWidgetEvent("category", { feedback_type: value });
@@ -444,7 +531,9 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
     this.root.querySelectorAll<HTMLElement>(".step").forEach((stepElement) => {
       const isActive =
         (this.currentStep === "category" && stepElement.classList.contains("step-category")) ||
-        (this.currentStep === "message" && stepElement.classList.contains("step-message"));
+        (this.currentStep === "message" && stepElement.classList.contains("step-message")) ||
+        (this.currentStep === "success" && stepElement.classList.contains("step-success")) ||
+        (this.currentStep === "error" && stepElement.classList.contains("step-error"));
 
       stepElement.setAttribute("aria-hidden", String(!isActive));
       if (isActive) stepElement.removeAttribute("inert");
@@ -455,31 +544,72 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
   private applyCategoryState() {
     this.root.querySelectorAll<HTMLButtonElement>("[data-feedback-type]").forEach((button) => {
       const isSelected = button.dataset.feedbackType === this.selectedFeedbackType;
-      button.setAttribute("aria-pressed", String(isSelected));
-      button.toggleAttribute("data-selected", isSelected);
+      button.setAttribute("aria-checked", String(isSelected));
     });
   }
 
-  private updateFeedbackTypeCopy() {
+  private syncFeedbackTypeState() {
     const content = feedbackTypeContent[this.selectedFeedbackType];
+
+    this.syncFeedbackTypeField();
+    this.updateMessagePrompt(content);
+    this.updateSubmitLabel(content);
+    this.updateSuccessCopy(content);
+    this.updateSelectedPill(content);
+  }
+
+  private syncFeedbackTypeField() {
     const hiddenTypeInput = this.root.querySelector<HTMLInputElement>('input[name="feedback_type"]');
-
     if (hiddenTypeInput) hiddenTypeInput.value = this.selectedFeedbackType;
-    if (this.messageInput) this.messageInput.placeholder = content.placeholder;
-    if (this.submitButton && !this.submitButton.disabled) this.submitButton.textContent = content.submitLabel;
-    const successCopy = this.root.querySelector<HTMLElement>("[data-success-copy]");
-    if (successCopy) successCopy.textContent = content.successMessage;
+  }
 
-    const selectedChip = this.root.querySelector(".selected-chip");
-    if (selectedChip) {
-      selectedChip.innerHTML = `<span aria-hidden="true">${content.emoji}</span><span>${escapeHtml(content.label)}</span>`;
+  private updateMessagePrompt(content: FeedbackTypeContent) {
+    if (this.messageInput) {
+      this.messageInput.placeholder = content.placeholder;
+      this.messageInput.setAttribute("aria-label", content.ariaLabel);
     }
+  }
+
+  private updateSubmitLabel(content: FeedbackTypeContent) {
+    if (this.submitButton && !this.submitButton.disabled) this.submitButton.textContent = content.submitLabel;
+  }
+
+  private updateSuccessCopy(content: FeedbackTypeContent) {
+    const successCopy = this.root.querySelector<HTMLElement>("[data-success-copy]");
+    if (successCopy) successCopy.textContent = content.successBody;
+  }
+
+  private updateSelectedPill(content: FeedbackTypeContent) {
+    const selectedChip = this.root.querySelector(".pill");
+    if (selectedChip) {
+      selectedChip.className = `pill pill--${this.selectedFeedbackType}`;
+      selectedChip.setAttribute("aria-label", `Selected category: ${content.label}`);
+      selectedChip.innerHTML = `
+        <span class="pill__glyph" aria-hidden="true">${content.icon}</span>
+        <span>${escapeHtml(content.label)}</span>
+      `;
+    }
+  }
+
+  private updateCharacterCount() {
+    if (!this.messageInput || !this.characterCounter) return;
+    this.characterCounter.textContent = `${this.messageInput.value.length} / ${maxMessageLength}`;
   }
 
   private focusActiveStep() {
     const focus = () => {
       if (this.currentStep === "message") {
         this.messageInput?.focus();
+        return;
+      }
+
+      if (this.currentStep === "success") {
+        this.root.querySelector<HTMLButtonElement>("[data-close]")?.focus();
+        return;
+      }
+
+      if (this.currentStep === "error") {
+        this.root.querySelector<HTMLButtonElement>("[data-try-again]")?.focus();
         return;
       }
 
@@ -501,6 +631,27 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
     return value;
   }
 
+  private getMessageValidationError(message: string) {
+    const trimmedMessage = message.trim();
+
+    if (!trimmedMessage) return "Please enter your feedback before sending.";
+    if (trimmedMessage.length < this.minMessageLength) {
+      return `Add a little more detail (${this.minMessageLength}+ characters).`;
+    }
+
+    return null;
+  }
+
+  private handleMessageInput() {
+    if (!this.messageInput) return;
+
+    this.updateCharacterCount();
+    if (!this.errorElement || this.errorElement.hidden) return;
+    if (this.getMessageValidationError(this.messageInput.value)) return;
+
+    this.resetStatus();
+  }
+
   private handleClosed() {
     this.resetForm();
     this.dispatchWidgetEvent("close");
@@ -520,16 +671,16 @@ export class SendmuxFeedbackElement extends BaseHTMLElement {
 function categoryOption(value: FeedbackType, content: FeedbackTypeContent, selected = false) {
   return `
     <button
-      class="category-option"
+      class="option option--${value}"
       type="button"
+      role="radio"
       data-feedback-type="${value}"
-      aria-pressed="${selected}"
-      ${selected ? "data-selected" : ""}
+      aria-checked="${selected}"
     >
-      <span class="category-emoji" aria-hidden="true">${content.emoji}</span>
-      <span class="category-text">
-        <strong>${escapeHtml(content.label)}</strong>
-        <small>${escapeHtml(content.helper)}</small>
+      <span class="option__icon" aria-hidden="true">${content.icon}</span>
+      <span class="option__body">
+        <span class="option__label">${escapeHtml(content.label)}</span>
+        <span class="option__desc">${escapeHtml(content.helper)}</span>
       </span>
     </button>
   `;
@@ -544,6 +695,12 @@ function isFeedbackType(value: string): value is FeedbackType {
   return Object.prototype.hasOwnProperty.call(feedbackTypeContent, value);
 }
 
+function normaliseMinMessageLength(value: number | undefined) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 1;
+  return Math.min(Math.max(Math.floor(numericValue), 1), maxMessageLength);
+}
+
 function escapeHtml(value: string) {
   return value.replace(/[&<>"']/g, (char) => {
     const map: Record<string, string> = {
@@ -555,4 +712,91 @@ function escapeHtml(value: string) {
     };
     return map[char] ?? char;
   });
+}
+
+function iconClose() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M18 6 6 18"></path>
+      <path d="m6 6 12 12"></path>
+    </svg>
+  `;
+}
+
+function iconBack() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m15 18-6-6 6-6"></path>
+    </svg>
+  `;
+}
+
+function iconIssue() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+      <path d="M12 9v4"></path>
+      <path d="M12 17h.01"></path>
+    </svg>
+  `;
+}
+
+function iconIdea() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path>
+      <path d="M9 18h6"></path>
+      <path d="M10 22h4"></path>
+    </svg>
+  `;
+}
+
+function iconPraise() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"></path>
+      <path d="M20 3v4"></path>
+      <path d="M22 5h-4"></path>
+      <path d="M4 17v2"></path>
+      <path d="M5 18H3"></path>
+    </svg>
+  `;
+}
+
+function iconFeedback() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"></path>
+      <path d="M8 12h.01"></path>
+      <path d="M12 12h.01"></path>
+      <path d="M16 12h.01"></path>
+    </svg>
+  `;
+}
+
+function iconCheck() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M20 6 9 17l-5-5"></path>
+    </svg>
+  `;
+}
+
+function iconError() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 8v4"></path>
+      <path d="M12 16h.01"></path>
+    </svg>
+  `;
+}
+
+function iconRetry() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+      <path d="M3 4v5h5"></path>
+    </svg>
+  `;
 }

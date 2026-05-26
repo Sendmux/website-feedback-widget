@@ -1,6 +1,9 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/widget-category-2x.png" alt="Sendmux Feedback Widget category selection" width="360">
-  <img src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/widget-message-2x.png" alt="Sendmux Feedback Widget message step" width="360">
+  <img
+    src="https://raw.githubusercontent.com/Sendmux/website-feedback-widget/main/.github/assets/widget-demo-clean.gif"
+    alt="Animated Sendmux Feedback Widget flow showing category selection, compose, and success states"
+    width="760"
+  />
 </p>
 
 # Sendmux Feedback Widget
@@ -29,7 +32,7 @@ This repository does not ship the agent that reads email or creates GitHub issue
 - Works with package installs or a CDN bundle after release.
 - Sends JSON to your own endpoint, any webhook, or a server-side Sendmux relay.
 - Supports logged-in user context and metadata without exposing secrets.
-- Configurable position, brand colour, font family, label, heading, and powered-by link.
+- Configurable position, brand colour, font family, label, heading, minimum message length, and powered-by link.
 - System font by default, with optional Google Font support if your site already uses one.
 - Accessible modal behaviour, labelled controls, keyboard support, visible focus states, dark mode, and reduced-motion support.
 - Shadow DOM styles to avoid clashing with host apps.
@@ -64,7 +67,7 @@ Add the widget:
 <sendmux-feedback
   endpoint="/api/feedback"
   position="middle-right"
-  brand-colour="#4f46e5"
+  brand-colour="oklch(0.556 0.19 264)"
 ></sendmux-feedback>
 ```
 
@@ -149,7 +152,7 @@ function isValidFeedback(feedback) {
     ["issue", "idea", "praise", "feedback"].includes(feedback.feedback_type) &&
     typeof feedback.message === "string" &&
     feedback.message.trim().length > 0 &&
-    feedback.message.length <= 4000
+    feedback.message.length <= 2000
   );
 }
 
@@ -206,15 +209,16 @@ Payload:
 | --- | --- | --- |
 | `endpoint` | `endpoint` | `""` |
 | `position` | `position` | `bottom-right` |
-| `brandColor` | `brand-color` / `brand-colour` | `#4f46e5` |
+| `brandColor` | `brand-color` / `brand-colour` | `oklch(0.556 0.19 264)` |
 | `fontFamily` | `font-family` | system font |
 | `poweredBy` | `powered-by` | `true` |
 | `buttonLabel` | `button-label` | `Feedback` |
 | `title` | `heading` | `Send feedback` |
+| `minMessageLength` | `min-message-length` | `1` |
 
-Canonical JavaScript positions: `top-left`, `top-center`, `top-right`, `middle-left`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`.
+Canonical JavaScript positions: `center`, `top-left`, `top-center`, `top-right`, `middle-left`, `middle-right`, `bottom-left`, `bottom-center`, `bottom-right`.
 
-HTML attributes also accept compatibility aliases and normalise them at runtime: `top-centre`, `top-middle`, `left-middle`, `right-middle`, `bottom-centre`, `bottom-middle`. Use `brandColor` in JavaScript config; `brand-colour` and legacy JavaScript `brandColour` are accepted only as compatibility aliases.
+HTML attributes also accept compatibility aliases and normalise them at runtime: `centre`, `middle`, `middle-centre`, `top-centre`, `top-middle`, `left-middle`, `right-middle`, `bottom-centre`, `bottom-middle`. Use `brandColor` in JavaScript config; `brand-colour` and legacy JavaScript `brandColour` are accepted only as compatibility aliases.
 
 To use a Google Font, load it in your page and set `font-family`:
 

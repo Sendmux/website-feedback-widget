@@ -41,7 +41,7 @@
 
       .eyebrow {
         margin: 0 0 0.75rem;
-        color: #4f46e5;
+        color: oklch(0.556 0.19 264);
         font-size: 0.8125rem;
         font-weight: 700;
         letter-spacing: 0.08em;
@@ -83,8 +83,8 @@
       }
 
       .primary-trigger {
-        border-color: #4f46e5;
-        background: #4f46e5;
+        border-color: oklch(0.556 0.19 264);
+        background: oklch(0.556 0.19 264);
         color: #ffffff;
       }
 
@@ -188,9 +188,10 @@
 
     <sendmux-feedback
       endpoint="/demo-feedback"
-      position="middle-right"
-      brand-colour="#4f46e5"
+      position="center"
+      brand-colour="oklch(0.556 0.19 264)"
       font-family="'Lato', system-ui, sans-serif"
+      min-message-length="100"
     ></sendmux-feedback>
 
     <script type="module" src="/src/index.ts"></script>

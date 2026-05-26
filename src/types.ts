@@ -1,6 +1,7 @@
 export type FeedbackType = "issue" | "idea" | "praise" | "feedback";
 
 export type SendmuxFeedbackPosition =
+  | "center"
   | "top-left"
   | "top-center"
   | "top-right"
@@ -22,6 +23,7 @@ export interface SendmuxFeedbackConfig {
   poweredBy?: boolean;
   buttonLabel?: string;
   title?: string;
+  minMessageLength?: number;
   user?: JsonObject;
   metadata?: JsonObject;
 }
