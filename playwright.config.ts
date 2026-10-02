@@ -9,7 +9,7 @@ export default defineConfig({
     trace: "on-first-retry"
   },
   webServer: {
-    command: "pnpm dev",
+    command: "bun run dev",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: true,
     stdout: "ignore",
