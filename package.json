@@ -4,7 +4,7 @@
   "description": "Open-source website feedback widget for webhook and email-to-agent workflows powered by Sendmux.",
   "license": "MIT",
   "type": "module",
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "bun@1.4.2",
   "homepage": "https://github.com/Sendmux/website-feedback-widget#readme",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
   "scripts": {
     "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true})\"",
     "dev": "vite --host 127.0.0.1",
-    "build": "pnpm clean && vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build": "bun run clean && vite build && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",

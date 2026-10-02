@@ -278,12 +278,12 @@ Rules:
 ## 🛠️ Development
 
 ```bash
-pnpm install
-pnpm dev
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm build
+bun install
+bun run dev
+bun run typecheck
+bun run test
+bun run test:e2e
+bun run build
 ```
 
 ## 📦 Release
@@ -291,7 +291,7 @@ pnpm build
 Releases are tag-driven through GitHub Actions.
 
 1. Update `package.json` version and `CHANGELOG.md`.
-2. Run `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm test:e2e`, and `npm pack --dry-run`.
+2. Run `bun run typecheck`, `bun run test`, `bun run build`, `bun run test:e2e`, and `npm pack --dry-run`.
 3. Commit manually with `chore: release vX.Y.Z`.
 4. Create and push a matching tag, such as `v0.1.0`.
 5. CI verifies the tag, builds the package, publishes to npm, and creates the GitHub Release.
